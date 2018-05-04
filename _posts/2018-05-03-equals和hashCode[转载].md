@@ -1,13 +1,12 @@
 ---
 layout: post
 title: equals和hashCode
-excerpt_separator:  <!--more-->
+excerpt_separator:  java中的equals和hashCode的讲解
 ---
 
-# equals和hashCode[转载]
 转载自[一次性搞清楚equals和hashCode](https://www.cnblogs.com/lulipro/p/5628750.html)，原作者：lulipro
 
-##前言
+## 前言
 在程序设计中，有很多的“公约”，遵守约定去实现你的代码，会让你避开很多坑，这些公约是前人总结出来的设计规范。
 Object类是Java中的万类之祖，其中，equals和hashCode是2个非常重要的方法。
 
@@ -15,7 +14,7 @@ Object类是Java中的万类之祖，其中，equals和hashCode是2个非常重�
 
 下面开始剖析。
 
-##public boolean equals(Object obj)
+## public boolean equals(Object obj)
 Object类中默认的实现方式是  : 
 ```
 public boolean equals(Object obj) {
@@ -66,7 +65,7 @@ class Test
 }
 ```
 
-##equals编写指导
+## equals编写指导
 Test类对象有2个字段，num和data，这2个字段代表了对象的状态，他们也用在equals方法中作为评判的依据。
 
 在第8行，传入的比较对象的引用和this做比较，这样做是为了 save time ，节约执行时间，如果this 和 obj是 对同一个堆对象的引用，那么，他们一定是qeuals 的。
@@ -115,7 +114,7 @@ if(  Float.floatToIntBits(f1) == Float.floatToIntBits(f2)  )      //f1 和 f2 �
 
 5. 最后需要注意的是，equals 方法的参数类型是Object，不要写错！
 
-##public int hashCode()
+## public int hashCode()
 
 这个方法返回对象的散列码，返回值是int类型的散列码。
 
@@ -147,7 +146,7 @@ if(  Float.floatToIntBits(f1) == Float.floatToIntBits(f2)  )      //f1 和 f2 �
 
 总结一句话：等价的(调用equals返回true)对象必须产生相同的散列码。不等价的对象，不要求产生的散列码不相同。
 
-##hashCode编写指导
+## hashCode编写指导
 
 在编写hashCode时，你需要考虑的是，最终的hash是个int值，而不能溢出。不同的对象的hash码应该尽量不同，避免hash冲突。
 
@@ -178,7 +177,7 @@ hash = 31 * hash + 字段2贡献分量;
 return hash；
 ```
 
-###作者原话
+### 作者原话
 说明，以下的内容是我在google上找到并翻译整理的，其中加入了自己的话和一些例子，便于理解，但我能保证这并不影响整体准确性。
 
 英文原文：http://www.javaranch.com/journal/2002/10/equalhash.html
