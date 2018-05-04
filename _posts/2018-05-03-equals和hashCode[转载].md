@@ -1,7 +1,6 @@
 ---
 layout: post
 title: equals和hashCode
-excerpt_separator:  java中的equals和hashCode的讲解
 ---
 
 转载自[一次性搞清楚equals和hashCode](https://www.cnblogs.com/lulipro/p/5628750.html)，原作者：lulipro
