@@ -83,6 +83,7 @@ public class WeixinController extends WeixinControllerSupport {
             templateMsg.setData(map);
             templateMsgAPI.send(templateMsg);
         }
+        return null;
     }
 }
 
