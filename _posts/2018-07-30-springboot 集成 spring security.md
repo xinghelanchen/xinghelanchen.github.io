@@ -28,6 +28,11 @@ title: springboot 集成 spring security。
 先新建一个类重写 WebSecurityConfigurerAdapter 的 configure(HttpSecurity http) 方法
 
 ```
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.annotation.web.configuration.WebSecurityConfigurerAdapter;
+
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig extends WebSecurityConfigurerAdapter {
