@@ -111,6 +111,7 @@ public class LoginController {
 ```
 
 ```
+//登录错误页面
 <!DOCTYPE HTML>
 <html>
 <head>
@@ -121,5 +122,185 @@ public class LoginController {
 </body>
 </html>
 ```
+
+启动以后访问 http://127.0.0.1:8080/hello ，会自动跳转到 http://127.0.0.1:8080/login 
+
+现在打开的就是自己的登录页面了
+
+![Image text](https://raw.githubusercontent.com/xinghelanchen/xinghelanchen.github.io/master/_img/1532946453.png)
+
+输入错误的用户名和密码
+
+![Image text](https://raw.githubusercontent.com/xinghelanchen/xinghelanchen.github.io/master/_img/1532946593.png)
+
+输入正确的用户名和密码
+
+![Image text](https://raw.githubusercontent.com/xinghelanchen/xinghelanchen.github.io/master/_img/1532946688.png)
+
+就可以跳转到之前要访问的链接了。
+
+当然我们的目标并不是这样
+
+## 3. 自定义用户名和密码
+
+官网的demo我就不贴了，这里直接写从数据库查用户名和密码的方式。
+
+spring security的原理就是使用很多的拦截器对URL进行拦截，以此来管理登录验证和用户权限验证。
+
+用户登陆，会被AuthenticationProcessingFilter拦截，调用AuthenticationManager的实现，而且AuthenticationManager会调用ProviderManager来获取用户验证信息（不同的Provider调用的服务不同，因为这些信息可以是在数据库上，可以是在LDAP服务器上，可以是xml配置文件上等），如果验证通过后会将用户的权限信息封装一个User放到spring的全局缓存SecurityContextHolder中，以备后面访问资源时使用。
+
+所以我们要自定义用户的校验机制的话，我们只要实现自己的AuthenticationProvider就可以了。在用AuthenticationProvider 这个之前，我们需要提供一个获取用户信息的服务，实现  UserDetailsService 接口
+
+用户名密码->(Authentication(未认证)  ->  AuthenticationManager ->AuthenticationProvider->UserDetailService->UserDetails->Authentication(已认证）
+
+### 1. 定义自己的用户类继承 UserDetails 和 Serializable 接口
+
+```
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.userdetails.UserDetails;
+
+import java.io.Serializable;
+import java.util.Collection;
+
+public class UserInfo implements Serializable, UserDetails {
+
+    private static final long serialVersionUID = 1L;
+    private String username;
+    private String password;
+    private String role;
+    private boolean accountNonExpired;
+    private boolean accountNonLocked;
+    private boolean credentialsNonExpired;
+    private boolean enabled;
+    public UserInfo(String username, String password, String role, boolean accountNonExpired, boolean accountNonLocked,
+                    boolean credentialsNonExpired, boolean enabled) {
+        // TODO Auto-generated constructor stub
+        this.username = username;
+        this.password = password;
+        this.role = role;
+        this.accountNonExpired = accountNonExpired;
+        this.accountNonLocked = accountNonLocked;
+        this.credentialsNonExpired = credentialsNonExpired;
+        this.enabled = enabled;
+    }
+
+    @Override
+    public Collection<? extends GrantedAuthority> getAuthorities() {
+        return AuthorityUtils.commaSeparatedStringToAuthorityList(role);
+    }
+    get... \ set...
+}
+```
+### 2. MyUserDetailsService 用来返回UserInfo实例
+```
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Component;
+
+@Component
+public class MyUserDetailsService implements UserDetailsService {
+    @Override
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+
+        //这里应该去数据库查询构建userInfo，此处模拟一下
+        if (username.equals("admin")) {
+            UserInfo userInfo = new UserInfo("admin", "123456", "ROLE_ADMIN", true, true, true, true);
+            return userInfo;
+        }
+
+        return null;
+    }
+}
+```
+### 3. 实现自己的 MyAuthenticationProvider 这个里面就是用来自己做登录校验了
+```
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.stereotype.Component;
+
+import java.util.Collection;
+
+@Component
+public class MyAuthenticationProvider implements AuthenticationProvider {
+
+    @Autowired
+    private UserDetailsService userDetailsService;
+
+    @Override
+    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
+        String username = authentication.getName(); //用户输入的密码
+        String password = (String) authentication.getCredentials(); //用户输入的密码
+
+        System.out.println(username + password);
+
+        //开始校验用户
+        UserInfo userInfo = (UserInfo) userDetailsService.loadUserByUsername(username);
+
+        if (userInfo == null) {
+            throw new BadCredentialsException("用户名不存在");
+        }
+
+        // //这里我们还要判断密码是否正确，实际应用中，我们的密码一般都会加密，以Md5加密为例
+        // Md5PasswordEncoder md5PasswordEncoder=new Md5PasswordEncoder();
+        // //这里第个参数，是salt
+        // 就是加点盐的意思，这样的好处就是用户的密码如果都是123456，由于盐的不同，密码也是不一样的，就不用怕相同密码泄漏之后，不会批量被破解。
+        // String encodePwd=md5PasswordEncoder.encodePassword(password, userName);
+        // //这里判断密码正确与否
+        // if(!userInfo.getPassword().equals(encodePwd))
+        // {
+        // throw new BadCredentialsException("密码不正确");
+        // }
+        // //这里还可以加一些其他信息的判断，比如用户账号已停用等判断，这里为了方便我接下去的判断，我就不用加密了。
+
+        if (!userInfo.getPassword().equals(password)) {
+            throw new BadCredentialsException("密码不正确");
+        }
+
+        Collection<? extends GrantedAuthority> authorities = userInfo.getAuthorities();
+
+        // 构建返回的用户登录成功的token
+        return new UsernamePasswordAuthenticationToken(userInfo, password, authorities);
+    }
+
+    @Override
+    public boolean supports(Class<?> aClass) {
+        //这里改成true，才算是开启了。
+        return true;
+    }
+}
+```
+现在重新运行程序，需要输入的用户名 admin ，密码 123456 ，就可以访问了。
+
+为了方便测试，可以添加一个 controller 用来查看当前登录的用户信息。
+```
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+
+@Controller
+public class WhoController {
+
+    @RequestMapping("/whoim")
+    @ResponseBody
+    public Object whoIm() {
+        return SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
+}
+```
+这样登录以后就可以访问 http://127.0.0.1:8080/whoim 来查看当前登录的用户的信息了
+
+![Image text](https://raw.githubusercontent.com/xinghelanchen/xinghelanchen.github.io/master/_img/1533025115.png)
+
+
+
 
 转载请标注原文链接
