@@ -300,6 +300,95 @@ public class WhoController {
 
 ![Image text](https://raw.githubusercontent.com/xinghelanchen/xinghelanchen.github.io/master/_img/1533025115.png)
 
+到这里自定义登录已经成功了。
+
+## 4. 自定义登录成功和失败的处理逻辑
+
+为了实现登录成功或者失败以后可以跳转到指定页面或者返回json格式的数据，这里需要新建两个类
+
+```
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.web.DefaultRedirectStrategy;
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
+import org.springframework.stereotype.Component;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
+@Component("myAuthenticationSuccessHandler")
+public class MyAuthenticationSuccessHandler extends SavedRequestAwareAuthenticationSuccessHandler {
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Override
+    public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws ServletException, IOException {
+//        super.onAuthenticationSuccess(request, response, authentication);
+        // 跳转到指定页面
+        new DefaultRedirectStrategy().sendRedirect(request, response, "/hello");
+    }
+}
+```
+
+```
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
+import org.springframework.stereotype.Component;
+
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+@Component("myAuthenticationFailureHandler")
+public class MyAuthenticationFailHander extends SimpleUrlAuthenticationFailureHandler {
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Override
+    public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
+//        super.onAuthenticationFailure(request, response, exception);
+        //以Json格式返回
+        Map<String,String> map = new HashMap<>();
+        map.put("code", "201");
+        map.put("msg", "登录失败");
+        response.setStatus(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write(objectMapper.writeValueAsString(map));
+    }
+}
+```
+
+增加这两个以后，还需要修改 SecurityConfig 类进行配置，修改 configure 方法
+
+```
+@Override
+    protected void configure(HttpSecurity http) throws Exception {
+        http
+                .formLogin().loginPage("/login").loginProcessingUrl("/login/form")
+                .successHandler(myAuthenticationSuccessHandler)
+                .failureHandler(myAuthenticationFailureHandler)
+                .permitAll()
+                .and()
+                .authorizeRequests().anyRequest().authenticated()
+                .and()
+                .csrf().disable();
+    }
+```
+
+## 5. 添加权限控制
+
 
 
 
