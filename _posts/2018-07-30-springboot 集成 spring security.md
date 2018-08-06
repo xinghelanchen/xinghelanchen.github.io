@@ -153,7 +153,7 @@ spring security的原理就是使用很多的拦截器对URL进行拦截，以�
 
 用户名密码->(Authentication(未认证)  ->  AuthenticationManager ->AuthenticationProvider->UserDetailService->UserDetails->Authentication(已认证）
 
-### 1. 定义自己的用户类继承 UserDetails 和 Serializable 接口
+### 3.1 定义自己的用户类继承 UserDetails 和 Serializable 接口
 
 ```
 import org.springframework.security.core.GrantedAuthority;
@@ -192,7 +192,7 @@ public class UserInfo implements Serializable, UserDetails {
     get... \ set...
 }
 ```
-### 2. MyUserDetailsService 用来返回UserInfo实例
+### 3.2 MyUserDetailsService 用来返回UserInfo实例
 ```
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -214,7 +214,7 @@ public class MyUserDetailsService implements UserDetailsService {
     }
 }
 ```
-### 3. 实现自己的 MyAuthenticationProvider 这个里面就是用来自己做登录校验了
+### 3.3 实现自己的 MyAuthenticationProvider 这个里面就是用来自己做登录校验了
 ```
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -277,6 +277,18 @@ public class MyAuthenticationProvider implements AuthenticationProvider {
     }
 }
 ```
+现在校验部分完成了，我们需要在 SecurityConfig 中配置我们自己的校验
+
+```
+@Autowired
+private AuthenticationProvider provider;
+
+@Override
+protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+    auth.authenticationProvider(provider);
+}
+```
+
 现在重新运行程序，需要输入的用户名 admin ，密码 123456 ，就可以访问了。
 
 为了方便测试，可以添加一个 controller 用来查看当前登录的用户信息。
@@ -387,9 +399,143 @@ public class MyAuthenticationFailHander extends SimpleUrlAuthenticationFailureHa
     }
 ```
 
-## 5. 添加权限控制
+## 5. 添加基于 RBAC(role-Based-access control) 权限控制
 
+权限控制一般都是由三个部分组成，用户、角色、资源（菜单、按钮），以及用户和角色的关联表，角色和资源的关联表
 
+核心是判断用户要访问的url是否存在于用户角色所拥有的权限列表中
 
+```
+RbacService 接口类
+import org.springframework.security.core.Authentication;
+
+import javax.servlet.http.HttpServletRequest;
+
+public interface RbacService {
+    boolean hasPermission(HttpServletRequest request, Authentication authentication);
+}
+```
+```
+RbacService 实现类
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Service;
+import org.springframework.util.AntPathMatcher;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.HashSet;
+import java.util.Set;
+
+@Service("rbacService")
+public class RbacServiceImpl implements RbacService {
+    private AntPathMatcher antPathMatcher = new AntPathMatcher();
+
+    @Override
+    public boolean hasPermission(HttpServletRequest request, Authentication authentication) {
+
+        Object principal = authentication.getPrincipal();
+        boolean hasPermission = false;
+        if (principal instanceof UserDetails) {
+            String userName = ((UserDetails) principal).getUsername();
+            Set<String> urls = new HashSet<>(); //数据库读取该用户的角色拥有的权限
+
+            urls.add("/hello");
+            // 这里面判断 url 不能用 equals() ，因为有的 url 是有参数的。
+            for (String url : urls) {
+                if (antPathMatcher.match(url, request.getRequestURI())) {
+                    hasPermission = true;
+                    break;
+                }
+            }
+        }
+        return hasPermission;
+    }
+}
+```
+然后修改 SecurityConfig 类中的验证方式
+
+```
+http
+        .formLogin().loginPage("/login").loginProcessingUrl("/login/form")
+        .successHandler(myAuthenticationSuccessHandler)
+        .failureHandler(myAuthenticationFailureHandler)
+        .permitAll()
+        .and()
+        .authorizeRequests()
+        .anyRequest().access("@rbacService.hasPermission(request,authentication )")
+        .and()
+        .csrf().disable();
+```
+
+现在访问 /hello ，以后正确登录就可以打开 hello ，但是访问 /whoim 的时候就会报403，没有权限
+
+## 6. 记住我功能 Remeber me
+
+这里我选用了使用数据库存储token，这样后台重启以后， Remeber me 依然生效，
+
+### 6.1 先创建表
+```
+CREATE TABLE persistent_logins (
+    username VARCHAR(64) NOT NULL,
+    series VARCHAR(64) NOT NULL,
+    token VARCHAR(64) NOT NULL,
+    last_used TIMESTAMP NOT NULL,
+    PRIMARY KEY (series)
+);
+```
+### 6.2 页面增加勾选
+```
+<tr>
+    <td>记住我</td>
+    <td><input type="checkbox" name="remember-me"  class="form-control"/></td>
+</tr>
+```
+### 6.3 增加依赖包
+```
+<dependency>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-jdbc</artifactId>
+</dependency>
+```
+### 6.4 SecurityConfig 类里面配置好 token 的存储及数据源
+```
+@Autowired
+    DataSource dataSource;
+    /**
+     * 记住我功能的token存取器配置
+     * @return
+     */
+    @Bean
+    public PersistentTokenRepository persistentTokenRepository() {
+        JdbcTokenRepositoryImpl tokenRepository = new JdbcTokenRepositoryImpl();
+        tokenRepository.setDataSource(dataSource);
+        return tokenRepository;
+    }
+```
+### 6.5 修改 SecurityConfig 中的 configure(HttpSecurity http) 方法
+```
+http
+        .formLogin().loginPage("/login").loginProcessingUrl("/login/form")
+        .successHandler(myAuthenticationSuccessHandler)
+        .failureHandler(myAuthenticationFailureHandler)
+        .permitAll()
+        .and()
+        .rememberMe()
+            .rememberMeParameter("remember-me").userDetailsService(userDetailsService)
+            .tokenRepository(persistentTokenRepository())
+            .tokenValiditySeconds(3600 * 24 * 7) // 配置token有效期
+        .and()
+        .authorizeRequests()
+        .anyRequest().access("@rbacService.hasPermission(request,authentication )")
+        .and()
+        .csrf().disable();
+```
+现在登录以后，重启后台程序，然后可以直接访问 /hello 页面，不需要登录。
+
+登录以后数据库会有该用户的token信息和最后时间
+
+![Image text](https://raw.githubusercontent.com/xinghelanchen/xinghelanchen.github.io/master/_img/1533550600.png)
+
+## 本文参考了[springboot 集成 spring security](https://blog.csdn.net/qq_29580525/article/details/79317969)
 
 转载请标注原文链接
