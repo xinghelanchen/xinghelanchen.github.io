@@ -1,7 +1,7 @@
-```
+---
 layout: post
-title: JAVA并发集合。
-```
+title: JAVA 并发集合 ConcurrentHashMap 。
+---
 
 今天收到一张 JAVA 并发体系的图，颇有兴趣，遂又开一个坑，慢慢写写这里面的东西。
 
