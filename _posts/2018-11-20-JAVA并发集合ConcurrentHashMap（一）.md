@@ -1,6 +1,6 @@
 ---
 layout: post
-title: JAVA 并发集合 ConcurrentHashMap 。
+title: JAVA 并发集合 ConcurrentHashMap （一）。
 ---
 
 今天收到一张 JAVA 并发体系的图，颇有兴趣，遂又开一个坑，慢慢写写这里面的东西。
