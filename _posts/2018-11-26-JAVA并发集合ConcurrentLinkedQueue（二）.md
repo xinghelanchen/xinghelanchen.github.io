@@ -54,10 +54,10 @@ ConcurrentLinkedQueue 是一个基于链接节点的无界线程安全队列，�
 
 3. tail节点的next域可以引用到自身。
 
-
 ## 入队列
 
 入队主要做两件事情，第一是将入队节点设置成当前队列尾节点的下一个节点。第二是更新tail节点，如果tail节点的next节点不为空，则将入队节点设置成tail节点，如果tail节点的next节点为空，则将入队节点设置成tail的next节点，所以tail节点不总是尾节点，
+
 
 ```
 public boolean offer(E e) {
@@ -68,11 +68,14 @@ public boolean offer(E e) {
         Node<E> q = p.next;
         if (q == null) {
             // p is last node
+            // 下一个节点为 null ，意味着 p 节点就是尾节点。
             if (p.casNext(null, newNode)) {
                 // Successful CAS is the linearization point
                 // for e to become an element of this queue,
                 // and for newNode to become "live".
+                // 将 newNode 设置为当前队列尾节点的 next 节点，
                 if (p != t) // hop two nodes at a time
+                // 判断 p 节点不是尾节点，更新一次。
                     casTail(t, newNode);  // Failure is OK.
                 return true;
             }
@@ -83,9 +86,12 @@ public boolean offer(E e) {
             // will also be off-list, in which case we need to
             // jump to head, from which all live nodes are always
             // reachable.  Else the new tail is a better bet.
+            // 这里表示回环，需要重新从 head 寻找队列的结尾。
             p = (t != (t = tail)) ? t : head;
         else
             // Check for tail updates after two hops.
+            // q 不是 null，说明 p 的 next 指向别的元素了，要从 q 开始循环找到最后一个元素
+            // 利用上面的代码更新 tail 的位置
             p = (p != t && t != (t = tail)) ? t : q;
     }
 }
@@ -96,6 +102,33 @@ public boolean offer(E e) {
 2. tail 指向非尾节点，即 tail 滞后
 
 ## 出队列
+
+```
+public E poll() {
+    restartFromHead:
+    for (;;) {
+        for (Node<E> h = head, p = h, q;;) {
+            E item = p.item;
+            // 如果item不为null的话将其设为null实现删除头结点
+            if (item != null && p.casItem(item, null)) {
+                // Successful CAS is the linearization point
+                // for item to be removed from this queue.
+                if (p != h) // hop two nodes at a time
+                    updateHead(h, ((q = p.next) != null) ? q : p);
+                return item;
+            }
+            else if ((q = p.next) == null) {
+                updateHead(h, p);
+                return null;
+            }
+            else if (p == q)
+                continue restartFromHead;
+            else
+                p = q;
+        }
+    }
+}
+```
 
 
 
