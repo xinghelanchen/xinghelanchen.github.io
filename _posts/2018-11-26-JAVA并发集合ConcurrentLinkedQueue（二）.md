@@ -151,6 +151,23 @@ ps:
 
 * StoreLoad  屏障：对于这样的语句 Store1; StoreLoad; Load2，在 Load2 及后续所有读取操作执行前，保证 Store1 的写入对所有处理器可见。它的开销是四种屏障中最大的。在大多数处理器的实现中，这个屏障是个万能屏障，兼具其它三种内存屏障的功能。
 
+## 队列判空
 
+使用 query.size() == 0 ，会遍历所有的节点，所以最好使用 isEmpty() 。
 
+```
+public int size() {
+    int count = 0;
+    for (Node<E> p = first(); p != null; p = succ(p))
+        if (p.item != null)
+            // Collection.size() spec says to max out
+            if (++count == Integer.MAX_VALUE)
+                break;
+    return count;
+}
+
+public boolean isEmpty() {
+    return first() == null;
+}
+```
 
