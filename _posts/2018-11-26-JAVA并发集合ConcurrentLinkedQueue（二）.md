@@ -91,48 +91,65 @@ public boolean offer(E e) {
         else
             // Check for tail updates after two hops.
             // q 不是 null，说明 p 的 next 指向别的元素了，要从 q 开始循环找到最后一个元素
-            // 利用上面的代码更新 tail 的位置
+            // tail 指向非尾节点，即 tail 滞后，利用上面的代码更新 tail 的位置
             p = (p != t && t != (t = tail)) ? t : q;
     }
 }
 ```
 
-这里的 else：
-1. tail 指向自己，需要重新从 head 遍历
-2. tail 指向非尾节点，即 tail 滞后
-
 ## 出队列
 
 ```
 public E poll() {
+    // 设置起始点
     restartFromHead:
     for (;;) {
         for (Node<E> h = head, p = h, q;;) {
             E item = p.item;
-            // 如果item不为null的话将其设为null实现删除头结点
             if (item != null && p.casItem(item, null)) {
                 // Successful CAS is the linearization point
                 // for item to be removed from this queue.
+                // 如果 item 不为 null 的话将其设为 null 实现删除头结点
                 if (p != h) // hop two nodes at a time
                     updateHead(h, ((q = p.next) != null) ? q : p);
                 return item;
             }
             else if ((q = p.next) == null) {
+                // 如果 head 的 next 指向了 null ，说明队列是 null 。
                 updateHead(h, p);
                 return null;
             }
             else if (p == q)
+                // p 的 next 指向 p 自己，闭环，重新从头开始找
                 continue restartFromHead;
             else
                 p = q;
         }
     }
 }
+
+final void updateHead(Node<E> h, Node<E> p) {
+    if (h != p && casHead(h, p))
+        h.lazySetNext(h);
+}
+
+void lazySetNext(Node<E> val) {
+    UNSAFE.putOrderedObject(this, nextOffset, val);
+}
 ```
 
+putOrderedObject：调用这个方法产生的效果是: write 操作不会和前面的写操作重排序, 但是可能会被随后的操作重排序(即随后的操作中可能不可见), 直到其他的 volatile 写或同步事件发生
 
+这里为啥不调用 putObject 呢, 原因非常简单, putOrderedObject 使用 store-store barrier屏障, 而 putObject 还会使用 store-load barrier 屏障
 
+ps: 
+* LoadLoad   屏障：对于这样的语句 Load1; LoadLoad; Load2，在 Load2 及后续读取操作要读取的数据被访问前，保证 Load1 要读取的数据被读取完毕。
 
+* StoreStore 屏障：对于这样的语句 Store1; StoreStore; Store2，在 Store2 及后续写入操作执行前，保证 Store1 的写入操作对其它处理器可见。
+
+* LoadStore  屏障：对于这样的语句 Load1; LoadStore; Store2，在 Store2 及后续写入操作被刷出前，保证 Load1 要读取的数据被读取完毕。
+
+* StoreLoad  屏障：对于这样的语句 Store1; StoreLoad; Load2，在 Load2 及后续所有读取操作执行前，保证 Store1 的写入对所有处理器可见。它的开销是四种屏障中最大的。在大多数处理器的实现中，这个屏障是个万能屏障，兼具其它三种内存屏障的功能。
 
 
 
