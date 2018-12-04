@@ -1,6 +1,9 @@
 ---
 layout: post
-title: 使用fastweixin框架快速搭建微信公众平台的后台。
+title: 使用fastweixin框架快速搭建微信公众平台的后台
+categories: 微信后台
+description: 使用fastweixin框架快速搭建微信公众平台的后台
+keywords: Java, 微信公众号
 ---
 
 本文用于介绍在springboot项目中使用fastweixin框架，快速搭建微信公众平台的后台。使用了github上面sd4324530提供的[快速搭建微信公众平台服务器](https://github.com/sd4324530/fastweixin)。

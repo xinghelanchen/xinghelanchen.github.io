@@ -1,6 +1,9 @@
 ---
 layout: post
-title: 使用fastweixin框架群发消息（二）。
+title: 使用fastweixin框架群发消息（二）
+categories: 微信后台
+description: 使用fastweixin框架群发消息（二）
+keywords: Java, 微信公众号
 ---
 
 本文使用fastweixin框架来群发消息，使用前请先阅读[使用fastweixin框架快速搭建微信公众平台的后台。](https://xinghelanchen.github.io/2018/05/11/%E4%BD%BF%E7%94%A8fastweixin%E6%A1%86%E6%9E%B6%E5%BC%80%E5%8F%91%E5%BE%AE%E4%BF%A1%E8%AE%A2%E9%98%85%E5%8F%B7.html)，本文使用了github上面sd4324530提供的[快速搭建微信公众平台服务器](https://github.com/sd4324530/fastweixin)。

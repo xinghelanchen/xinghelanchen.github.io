@@ -1,6 +1,9 @@
 ---
 layout: post
-title: springboot 集成 spring security。
+title: springboot 集成 spring security
+categories: springboot
+description: springboot 集成 spring security
+keywords: Java, springboot, spring security
 ---
 
 工作需要在 springboot 中集成 spring security，所以网上研究了一下

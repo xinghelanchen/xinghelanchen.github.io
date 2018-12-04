@@ -1,6 +1,9 @@
 ---
 layout: post
-title: Docker在windows上的踩坑记录。
+title: Docker在windows上的踩坑记录
+categories: Docker
+description: Docker在windows上的踩坑记录
+keywords: Docker, windows
 ---
 
 记录一下自己的Docker学习记录。

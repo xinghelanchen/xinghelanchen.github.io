@@ -1,6 +1,9 @@
 ---
 layout: post
 title: equals和hashCode
+categories: Java基础
+description: equals和hashCode
+keywords: Java, equals, hashCode
 ---
 
 查询hashCode的时候看到了这篇博文，感觉写的很好就转了。原博文[一次性搞清楚equals和hashCode](https://www.cnblogs.com/lulipro/p/5628750.html)，原作者：lulipro。
