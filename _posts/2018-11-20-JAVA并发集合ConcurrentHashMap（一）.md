@@ -7,13 +7,13 @@ title: JAVA 并发集合 ConcurrentHashMap （一）。
 
 本文基于 jdk1.8 。
 
-# ConcurrentHashMap
+## ConcurrentHashMap
 
 CAS + Synchronized 来保证并发更新的安全，底层采用数组 + 链表 / 红黑树的存储结构
 
-## 重要内部类
+### 重要内部类
 
-### Node
+#### Node
 
 Node 是 ConcurrentHashMap 存储结构的基本单元，用于存储 key-value 键值对，是一个链表，但只允许查找数据，不允许修改数据。源码如下：
 
@@ -68,7 +68,7 @@ static class Node<K,V> implements Map.Entry<K,V> {
 }
 ```
 
-### TreeNode
+#### TreeNode
 
 红黑树节点，这里是遍历红黑树的源码
 
@@ -109,17 +109,17 @@ final TreeNode<K,V> findTreeNode(int h, Object k, Class<?> kc) {
 }
 ```
 
-### TreeBin
+#### TreeBin
 
 相当于一颗红黑树，其构造方法其实就是构造红黑树的过程，封装 TreeNode 的容器，提供了转化红黑树的一些条件和锁的控制，封装了红黑树增删以及旋转节点操作，并且存了树的根节点
 
-### ForwardingNode
+#### ForwardingNode
 
 辅助节点，用于 ConcurrentHashMap扩容操作，只有 table 发生扩容的时候，ForwardingNode 才会发挥作用，作为一个占位符放在 table 中表示当前节点为 null 或则已经被移动。
 
 关于线程不安全的 HashMap 的扩容会出现死循环的情况，这个文章 [A Beautiful Race Condition](https://mailinator.blogspot.com/2009/06/beautiful-race-condition.html) 讲的很棒。
 
-### sizeCtr
+#### sizeCtr
 
 控制标识符，用来控制table初始化和扩容操作的
 
@@ -131,9 +131,9 @@ final TreeNode<K,V> findTreeNode(int h, Object k, Class<?> kc) {
 
 * 正数或 0 代表 hash 表还没有被初始化，这个数值表示初始化或下一次扩容的大小。
 
-## 重要操作
+### 重要操作
 
-### initTable
+#### initTable
 
 ConcurrentHashMap 初始化方法，这个操作不在构造函数调用，而是在 put 的时候调用。
 
@@ -145,7 +145,7 @@ ConcurrentHashMap 初始化方法，这个操作不在构造函数调用，而�
 CAS 比较交换的过程可以通俗的理解为 CAS(V,O,N) ，包含三个值分别为：V 内存地址存放的实际值；O 预期的值（旧值）；N 更新的新值。当 V 和 O 相同时，也就是说旧值和内存中实际的值相同表明该值没有被其他线程更改过，即该旧值 O 就是目前来说最新的值了，自然而然可以将新值N赋值给 V 。反之， V 和 O 不相同，表明该值已经被其他线程改过了则该旧值 O 不是最新版本的值了，所以不能将新值 N 赋给 V ，返回 V 即可。当多个线程使用 CAS 操作一个变量是，只有一个线程会成功，并成功更新，其余会失败。失败的线程会重新尝试，当然也可以选择挂起线程。
 ```
 
-### put
+#### put
 
 table 为 null，线程进入初始化步骤，如果有其他线程正在初始化，该线程挂起。
 
@@ -155,11 +155,11 @@ table 为 null，线程进入初始化步骤，如果有其他线程正在初始
 
 其余情况就是按照链表或者红黑树结构插入节点，需要同步（加锁）。
 
-### get
+#### get
 
 从链表/红黑树节点获取
 
-### 扩容
+#### 扩容
 
 构建一个 nextTable，其大小为原来的两倍，这个步骤也是 CAS 操作
 
@@ -169,9 +169,9 @@ table 为 null，线程进入初始化步骤，如果有其他线程正在初始
 
 所在链表的元素个数达到了阀值 8，则将链表转换为红黑树
 
-## 1.8 和 1.7 的区别
+### 1.8 和 1.7 的区别
 
-
+红黑树和扩容
 
 
 
