@@ -93,7 +93,7 @@ comments_provider: gitalk
 # https://github.com/gitalk/gitalk#install
 gitalk:
     owner: xinghelanchen
-    repo: blog-comments
+    repo: Yantao's blog
     clientID: acee27dc12e55b458a64
     clientSecret: 3133b3680df99661019bc1bff5e2685d76f10eb5
 # 在使用其它评论组件时可点击显示 Disqus
