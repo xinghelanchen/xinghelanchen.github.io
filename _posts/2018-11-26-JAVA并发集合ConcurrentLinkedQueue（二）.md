@@ -1,6 +1,9 @@
 ---
 layout: post
-title: JAVA 并发集合 ConcurrentLinkedQueue （二）。
+title: JAVA 并发集合 ConcurrentLinkedQueue（二）
+categories: Java 并发
+description: JAVA 并发集合 ConcurrentLinkedQueue（二）
+keywords: Java, ConcurrentLinkedQueue
 ---
 
 ConcurrentLinkedQueue 是一个基于链接节点的无界线程安全队列，它采用先进先出的规则对节点进行排序，当我们添加一个元素的时候，它会添加到队列的尾部，当我们获取一个元素时，它会返回队列头部的元素。用CAS实现非阻塞的线程安全队列。 
@@ -56,93 +59,94 @@ ConcurrentLinkedQueue 是一个基于链接节点的无界线程安全队列，�
 
 ### 入队列
 
-入队主要做两件事情，第一是将入队节点设置成当前队列尾节点的下一个节点。第二是更新tail节点，如果tail节点的next节点不为空，则将入队节点设置成tail节点，如果tail节点的next节点为空，则将入队节点设置成tail的next节点，所以tail节点不总是尾节点，
+> 入队主要做两件事情，第一是将入队节点设置成当前队列尾节点的下一个节点。第二是更新tail节点，如果tail节点的next节点不为空，则将入队节点设置成tail节点，如果tail节点的next节点为空，则将入队节点设置成tail的next节点，所以tail节点不总是尾节点，
 
 
 ```
-public boolean offer(E e) {
-    checkNotNull(e);
-    final Node<E> newNode = new Node<E>(e);
-    // 不断循环尝试插入
-    for (Node<E> t = tail, p = t;;) {
-        Node<E> q = p.next;
-        if (q == null) {
-            // p is last node
-            // 下一个节点为 null ，意味着 p 节点就是尾节点。
-            if (p.casNext(null, newNode)) {
-                // Successful CAS is the linearization point
-                // for e to become an element of this queue,
-                // and for newNode to become "live".
-                // 将 newNode 设置为当前队列尾节点的 next 节点，
-                if (p != t) // hop two nodes at a time
-                // 判断 p 节点不是尾节点，更新一次。
-                    casTail(t, newNode);  // Failure is OK.
-                return true;
+    public boolean offer(E e) {
+        checkNotNull(e);
+        final Node<E> newNode = new Node<E>(e);
+        // 不断循环尝试插入
+        for (Node<E> t = tail, p = t;;) {
+            Node<E> q = p.next;
+            if (q == null) {
+                // p is last node
+                // 下一个节点为 null ，意味着 p 节点就是尾节点。
+                if (p.casNext(null, newNode)) {
+                    // Successful CAS is the linearization point
+                    // for e to become an element of this queue,
+                    // and for newNode to become "live".
+                    // 将 newNode 设置为当前队列尾节点的 next 节点，
+                    if (p != t) // hop two nodes at a time
+                    // 判断 p 节点不是尾节点，更新一次。
+                        casTail(t, newNode);  // Failure is OK.
+                    return true;
+                }
+                // Lost CAS race to another thread; re-read next
             }
-            // Lost CAS race to another thread; re-read next
+            else if (p == q)
+                // We have fallen off list.  If tail is unchanged, it
+                // will also be off-list, in which case we need to
+                // jump to head, from which all live nodes are always
+                // reachable.  Else the new tail is a better bet.
+                // 这里表示回环，需要重新从 head 寻找队列的结尾。
+                p = (t != (t = tail)) ? t : head;
+            else
+                // Check for tail updates after two hops.
+                // q 不是 null，说明 p 的 next 指向别的元素了，要从 q 开始循环找到最后一个元素
+                // tail 指向非尾节点，即 tail 滞后，利用上面的代码更新 tail 的位置
+                p = (p != t && t != (t = tail)) ? t : q;
         }
-        else if (p == q)
-            // We have fallen off list.  If tail is unchanged, it
-            // will also be off-list, in which case we need to
-            // jump to head, from which all live nodes are always
-            // reachable.  Else the new tail is a better bet.
-            // 这里表示回环，需要重新从 head 寻找队列的结尾。
-            p = (t != (t = tail)) ? t : head;
-        else
-            // Check for tail updates after two hops.
-            // q 不是 null，说明 p 的 next 指向别的元素了，要从 q 开始循环找到最后一个元素
-            // tail 指向非尾节点，即 tail 滞后，利用上面的代码更新 tail 的位置
-            p = (p != t && t != (t = tail)) ? t : q;
     }
-}
 ```
 
 ### 出队列
 
 ```
-public E poll() {
-    // 设置起始点
-    restartFromHead:
-    for (;;) {
-        for (Node<E> h = head, p = h, q;;) {
-            E item = p.item;
-            if (item != null && p.casItem(item, null)) {
-                // Successful CAS is the linearization point
-                // for item to be removed from this queue.
-                // 如果 item 不为 null 的话将其设为 null 实现删除头结点
-                if (p != h) // hop two nodes at a time
-                    updateHead(h, ((q = p.next) != null) ? q : p);
-                return item;
+    public E poll() {
+        // 设置起始点
+        restartFromHead:
+        for (;;) {
+            for (Node<E> h = head, p = h, q;;) {
+                E item = p.item;
+                if (item != null && p.casItem(item, null)) {
+                    // Successful CAS is the linearization point
+                    // for item to be removed from this queue.
+                    // 如果 item 不为 null 的话将其设为 null 实现删除头结点
+                    if (p != h) // hop two nodes at a time
+                        updateHead(h, ((q = p.next) != null) ? q : p);
+                    return item;
+                }
+                else if ((q = p.next) == null) {
+                    // 如果 head 的 next 指向了 null ，说明队列是 null 。
+                    updateHead(h, p);
+                    return null;
+                }
+                else if (p == q)
+                    // p 的 next 指向 p 自己，闭环，重新从头开始找
+                    continue restartFromHead;
+                else
+                    p = q;
             }
-            else if ((q = p.next) == null) {
-                // 如果 head 的 next 指向了 null ，说明队列是 null 。
-                updateHead(h, p);
-                return null;
-            }
-            else if (p == q)
-                // p 的 next 指向 p 自己，闭环，重新从头开始找
-                continue restartFromHead;
-            else
-                p = q;
         }
     }
-}
-
-final void updateHead(Node<E> h, Node<E> p) {
-    if (h != p && casHead(h, p))
-        h.lazySetNext(h);
-}
-
-void lazySetNext(Node<E> val) {
-    UNSAFE.putOrderedObject(this, nextOffset, val);
-}
+    
+    final void updateHead(Node<E> h, Node<E> p) {
+        if (h != p && casHead(h, p))
+            h.lazySetNext(h);
+    }
+    
+    void lazySetNext(Node<E> val) {
+        UNSAFE.putOrderedObject(this, nextOffset, val);
+    }
 ```
 
-putOrderedObject：调用这个方法产生的效果是: write 操作不会和前面的写操作重排序, 但是可能会被随后的操作重排序(即随后的操作中可能不可见), 直到其他的 volatile 写或同步事件发生
+> putOrderedObject：调用这个方法产生的效果是: write 操作不会和前面的写操作重排序, 但是可能会被随后的操作重排序(即随后的操作中可能不可见), 直到其他的 volatile 写或同步事件发生
 
 这里为啥不调用 putObject 呢, 原因非常简单, putOrderedObject 使用 store-store barrier屏障, 而 putObject 还会使用 store-load barrier 屏障
 
 ps: 
+
 * LoadLoad   屏障：对于这样的语句 Load1; LoadLoad; Load2，在 Load2 及后续读取操作要读取的数据被访问前，保证 Load1 要读取的数据被读取完毕。
 
 * StoreStore 屏障：对于这样的语句 Store1; StoreStore; Store2，在 Store2 及后续写入操作执行前，保证 Store1 的写入操作对其它处理器可见。
@@ -156,18 +160,18 @@ ps:
 使用 query.size() == 0 ，会遍历所有的节点，所以最好使用 isEmpty() 。
 
 ```
-public int size() {
-    int count = 0;
-    for (Node<E> p = first(); p != null; p = succ(p))
-        if (p.item != null)
-            // Collection.size() spec says to max out
-            if (++count == Integer.MAX_VALUE)
-                break;
-    return count;
-}
-
-public boolean isEmpty() {
-    return first() == null;
-}
+    public int size() {
+        int count = 0;
+        for (Node<E> p = first(); p != null; p = succ(p))
+            if (p.item != null)
+                // Collection.size() spec says to max out
+                if (++count == Integer.MAX_VALUE)
+                    break;
+        return count;
+    }
+    
+    public boolean isEmpty() {
+        return first() == null;
+    }
 ```
 

@@ -1,37 +1,115 @@
-# Dependencies
-markdown:         kramdown
-highlighter:      rouge
+# ---------------- #
+#   Main Configs   #
+# ---------------- #
+baseurl:
+url: https://xinghelanchen.github.io
+date_format: "ordinal"
+title:
+subtitle: "闫涛的个人博客"
+description: ""
+keywords: 闫涛, yantao, xinghelanchen
+timezone: Asia/Shanghai
+encoding: "utf-8"
+side_bar_repo_limit: 5
 
-# Setup
-title:            Yantao's blog
-#tagline:          'A Jekyll theme'
-description:      '闫涛的博客'
-url:              https://xinghelanchen.github.io
-baseurl:          # the optional subpath of your site, e.g. "/blog"
-                  # NB: This applies to all pages in your Jekyll site.
-                  # If you want to move just the blog index pages but keep
-                  # other pages at root, see the paginate_path and
-                  # sidebar_blog_link below.
+# ---------------- #
+#      Author      #
+# ---------------- #
+author: yantao
+organization: guttv.cn
+organization_url: http://www.guttv.cn
+github_username: xinghelanchen
+location: Beijing, China
+email: yt975548277@gmail.com
 
-author:
-  name:           'Yantao'
-  url:            https://github.com/xinghelanchen
+# ---------------- #
+#    Navigation    #
+# ---------------- #
+navs:
+  -
+    href: /
+    label: 首页
 
-paginate:         5
-# paginate_path:    '/page:num'
-                    # Or '/blog/page:num' if you want to move your index pages
+  -
+    href: /categories/
+    label: 分类
 
-plugins:
-  - jekyll-feed
-  - jekyll-gist
-  - jekyll-paginate
+#   -
+#     href: /archives/
+#     label: 归档
 
-# Custom vars
-version:            3.6.0
-sidebar_home_link:  true
-# sidebar_blog_link:  '/blog'   # By default, your home page is your blog
-                                # page. If you change your paginate_path,
-                                # set this to the root of the paginate_path
-                                # to enable a separate blog link.
-github:
-  repo:             https://github.com/xinghelanchen
+#  -
+#    href: /wiki/
+#    label: 维基
+#
+#  -
+#    href: /links/
+#    label: 链接
+
+#  -
+#    href: /about/
+#    label: 关于
+
+# ---------------- #
+#       RSS        #
+# ---------------- #
+subscribe_rss: /feed.xml
+
+# ---------------- #
+#      Jekyll      #
+# ---------------- #
+markdown: kramdown
+kramdown:
+    input: GFM
+highlighter: rouge
+paginate: 10
+lsi: false
+quiet: false
+excerpt_separator: "\n\n"
+permalink: /:year/:month/:day/:title/
+gems:
+    - jekyll-github-metadata
+    - rouge
+#     - jekyll-html-pipeline
+    - jekyll-paginate
+    - jekyll-sitemap
+    - jekyll-feed
+    - jemoji
+#     - jekyll-mentions
+collections:
+    wiki:
+        output: true
+        permalink: /wiki/:path/
+
+repository: https://github.com/xinghelanchen/xinghelanchen.github.io
+
+# ---------------- #
+#      Comments    #
+# ---------------- #
+# support provider: disqus, gitment, gitalk
+comments_provider: gitalk
+# !!!重要!!! 请修改下面这些信息为你自己申请的
+# !!!Important!!! Please modify infos below to yours
+# https://github.com/gitalk/gitalk#install
+gitalk:
+    owner: xinghelanchen
+    repo: blog-comments
+    clientID: acee27dc12e55b458a64
+    clientSecret: 3133b3680df99661019bc1bff5e2685d76f10eb5
+# 在使用其它评论组件时可点击显示 Disqus
+lazy_load_disqus : false
+
+# ---------------- #
+#      Search      #
+# ---------------- #
+simple_jekyll_search:
+    # 是否支持全文搜索
+    fulltext: false
+    # 最多显示多少条搜索结果
+    limit: 10
+
+# ---------------- #
+#    Analytics     #
+# ---------------- #
+google:
+    analytics_id: UA-80669434-1
