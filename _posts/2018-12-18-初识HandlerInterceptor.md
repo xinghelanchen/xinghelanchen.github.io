@@ -1,12 +1,33 @@
 ---
 layout: post
-title: 使用拦截器让页面可以获取basePath
+title: SpringBoot+Freemarker页面获取basePath
 categories: JAVA_WEB
-description: 使用拦截器让页面可以获取basePath
+description: SpringBoot+Freemarker页面获取basePath
 keywords: Java, SpringBoot
 ---
 
-使用 SpringBoot + Freemarker 的时候，页面要使用 basePath 。百度找了几个方案，这里先说拦截器的方案。
+使用 SpringBoot + Freemarker 的时候，页面要使用 basePath 。百度找了几个方案。
+
+## 一、 修改 application.properties 的方式
+
+application.properties 中增加 spring.freemarker.request-context-attribute 属性
+
+```
+server.port=8080
+server.servlet.context-path=/verify
+# freemarker配置
+spring.freemarker.charset=utf-8
+spring.freemarker.content-type=text/html
+spring.freemarker.template-loader-path=classpath:/templates/
+...
+
+spring.freemarker.request-context-attribute=request
+```
+
+这样在页面就可以使用 ${request.contextPath} 获取到 "/verify" ，即工程的名称。
+
+
+## 二、 拦截器的方式
 
 ### 1. 先建立公共的拦截器 CommonInterceptor 实现 HandlerInterceptor 接口
 
@@ -98,4 +119,7 @@ public class WebMvcAutoConfiguration {
 ```
 var serverWeb = "${basePath}";
 ```
+
+获取到的值是：http://localhost:8080/verify
+
 
