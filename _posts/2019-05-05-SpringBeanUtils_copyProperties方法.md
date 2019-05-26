@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Spring BeanUtils 源码分析
+title: copyProperties 方法踩坑记（Spring BeanUtils 源码分析）
 categories: spring
 description: Spring BeanUtils
 keywords: Java, Spring
